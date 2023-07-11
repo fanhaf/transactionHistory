@@ -8,16 +8,31 @@ from flask import Flask, render_template, request, send_file
 app = Flask(__name__)
 
 
+def translate(input_str):
+    return input_str \
+        .replace('€Ş', 'ę') \
+        .replace('˝_', 'ź') \
+        .replace('˝â', 'ł') \
+        .replace('_¸', 'ó') \
+        .replace('€ă', 'Ą') \
+        .replace('˝ä', 'Ś') \
+        .replace('€ ', 'Ć') \
+        .replace('_Ň', 'Ó') \
+        .replace('˝', 'Ł') \
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     input_file = request.files['file']
-    content = input_file.read().decode('utf-8-sig')
-    qif_content = qif_file(io.StringIO(content))
+    content = input_file.read().decode('windows-1250', 'ignore')
+    translated_content = translate(content)
+    # print(translated_content)
+    # return "OK"
+    qif_content = qif_file(io.StringIO(translated_content))
 
     # Creating the byteIO object from the StringIO Object
     mem = io.BytesIO()
@@ -50,14 +65,12 @@ csv.register_dialect("pekao", pekao)
 def read_pekao_csv_transactions(input_stream):
     operations = []
     reader = csv.DictReader(input_stream, dialect="pekao")
+    print(reader.fieldnames)
     for row in reader:
-        for key in row:
-            print(key, ": ", row[key])
-        print('-------------------')
         operation = {
             'date': datetime.datetime.strptime(row['Data księgowania'], '%d.%m.%Y'),
             'description': re.sub(' +', ' ', row['Typ operacji'] + ' ' + row['Nadawca / Odbiorca'] + ' ' + row['Tytułem']),
-            'amount': row['Kwota operacji']
+            'amount': "{:.2f}".format(float(row['Kwota operacji'].replace(' ', '').replace(',', '.'))).replace('.', ',')
         }
         operations.append(operation)
     return operations
@@ -74,7 +87,7 @@ def qif_transaction(operation):
 
 def qif_file(input_stream):
     operations = read_pekao_csv_transactions(input_stream)
-    qif = qif_header('PEKAO') + ''.join(list(map(qif_transaction, operations)))
+    qif = qif_header('Pekao-net') + ''.join(list(map(qif_transaction, operations)))
     return qif
 
 
