@@ -28,11 +28,11 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     input_file = request.files['file']
-    content = input_file.read().decode('windows-1250', 'ignore')
-    translated_content = translate(content)
+    content = input_file.read().decode('utf-8', 'ignore')
+    #translated_content = translate(content)
     # print(translated_content)
     # return "OK"
-    qif_content = qif_file(io.StringIO(translated_content))
+    qif_content = qif_file(io.StringIO(content))
 
     # Creating the byteIO object from the StringIO Object
     mem = io.BytesIO()
